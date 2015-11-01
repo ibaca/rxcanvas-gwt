@@ -35,6 +35,15 @@ public class RxCanvas implements EntryPoint {
         canvas.setCoordinateSpaceHeight(height * ratio);
         canvas2d.scale(ratio, ratio);
 
+        tx(canvas2d, ctx -> {
+            // frame
+            ctx.setStrokeStyle("#ccc");
+            strokeRect(ctx, 10, 10, width - 20, height - 20);
+            ctx.setLineWidth(10);
+            ctx.setStrokeStyle("#eee");
+            strokeRect(ctx, 5, 5, width - 10, height - 10);
+        });
+
         Observable<MouseDownEvent> down = mouseDown(canvas).compose(log("down"));
         Observable<MouseUpEvent> up = mouseUp(canvas).compose(log("up"));
         Observable<List<double[]>> mouseDrag = mouseMove(canvas)
@@ -54,6 +63,19 @@ public class RxCanvas implements EntryPoint {
         paint.subscribe(action -> action.call(canvas2d));
 
         RootPanel.get().add(canvas);
+    }
+
+    public void tx(Context2d ctx, Action1<Context2d> draw) {
+        ctx.save();
+        draw.call(ctx);
+        ctx.restore();
+    }
+
+    public void strokeRect(Context2d ctx, int x, int y, int width, int height) {
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.stroke();
+
     }
 
     public static void strokeLine(Context2d ctx, double x1, double y1, double x2, double y2) {
