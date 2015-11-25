@@ -4,6 +4,9 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.DoubleClickEvent;
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.event.dom.client.HasDoubleClickHandlers;
+import com.google.gwt.event.dom.client.HasKeyDownHandlers;
+import com.google.gwt.event.dom.client.HasKeyPressHandlers;
+import com.google.gwt.event.dom.client.HasKeyUpHandlers;
 import com.google.gwt.event.dom.client.HasMouseDownHandlers;
 import com.google.gwt.event.dom.client.HasMouseMoveHandlers;
 import com.google.gwt.event.dom.client.HasMouseOutHandlers;
@@ -14,6 +17,9 @@ import com.google.gwt.event.dom.client.HasTouchCancelHandlers;
 import com.google.gwt.event.dom.client.HasTouchEndHandlers;
 import com.google.gwt.event.dom.client.HasTouchMoveHandlers;
 import com.google.gwt.event.dom.client.HasTouchStartHandlers;
+import com.google.gwt.event.dom.client.KeyDownEvent;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.MouseDownEvent;
 import com.google.gwt.event.dom.client.MouseMoveEvent;
 import com.google.gwt.event.dom.client.MouseOutEvent;
@@ -36,6 +42,22 @@ public class RxGwt {
 
     public static Observable<DoubleClickEvent> doubleClick(HasDoubleClickHandlers source) {
         return Observable.create(s -> register(s, source.addDoubleClickHandler(s::onNext)));
+    }
+
+    public static Observable<KeyDownEvent> keyDown(HasKeyDownHandlers source) {
+        return Observable.create(s -> register(s, source.addKeyDownHandler(s::onNext)));
+    }
+
+    public static Observable<KeyUpEvent> keyUp(HasKeyUpHandlers source) {
+        return Observable.create(s -> register(s, source.addKeyUpHandler(s::onNext)));
+    }
+
+    public static Observable<KeyPressEvent> keyPress(HasKeyPressHandlers source) {
+        return Observable.create(s -> register(s, source.addKeyPressHandler(s::onNext)));
+    }
+
+    public static Observable<KeyPressEvent> keyPress(HasKeyPressHandlers source, char filter) {
+        return keyPress(source).filter(e -> filter == e.getCharCode());
     }
 
     public static Observable<MouseDownEvent> mouseDown(HasMouseDownHandlers source) {

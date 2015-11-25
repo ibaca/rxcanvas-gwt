@@ -1,6 +1,7 @@
 package rxcanvas.client;
 
 import static rx.Observable.merge;
+import static rxcanvas.client.RxGwt.keyPress;
 import static rxcanvas.client.RxGwt.mouseDown;
 import static rxcanvas.client.RxGwt.mouseMove;
 import static rxcanvas.client.RxGwt.mouseUp;
@@ -14,10 +15,10 @@ import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.Touch;
 import com.google.gwt.event.dom.client.MouseEvent;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.RootPanel;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import rx.Observable;
 import rx.functions.Action1;
@@ -26,8 +27,8 @@ public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
 
     @Override public void onModuleLoad() {
-        int width = Window.getClientWidth();
-        int height = Window.getClientHeight();
+        int width = RootPanel.getBodyElement().getClientWidth();
+        int height = RootPanel.getBodyElement().getClientHeight();
 
         Canvas canvas = Canvas.createIfSupported();
         canvas.setWidth(width + "px");
@@ -39,37 +40,42 @@ public class RxCanvas implements EntryPoint {
         canvas.setCoordinateSpaceHeight(height * ratio);
         canvas2d.scale(ratio, ratio);
 
-        tx(canvas2d, ctx -> {
-            // frame
-            ctx.setStrokeStyle("#ccc");
-            strokeRect(ctx, 10, 10, width - 20, height - 20);
-            ctx.setLineWidth(10);
-            ctx.setStrokeStyle("#eee");
-            strokeRect(ctx, 5, 5, width - 10, height - 10);
-        });
-
-        Observable<List<double[]>> mouseDiff = mouseMove(canvas)
+        Observable<List<double[]>> mouseDiff$ = mouseMove(canvas)
                 .map(e -> canvasPosition(canvas, e))
                 .buffer(2, 1);
 
-        Observable<List<double[]>> mouseDrag = mouseDown(canvas).compose(log("mouse down"))
-                .flatMap(e -> mouseDiff.takeUntil(mouseUp(canvas).compose(log("mouse up"))));
+        Observable<List<double[]>> mouseDrag$ = mouseDown(canvas).compose(log("mouse down"))
+                .flatMap(e -> mouseDiff$.takeUntil(mouseUp(canvas).compose(log("mouse up"))));
 
-        Observable<List<double[]>> touchDiff = touchMove(canvas)
+        Observable<List<double[]>> touchDiff$ = touchMove(canvas)
                 .map(e -> e.getTouches().get(0))
                 .map(e -> canvasPosition(canvas, e))
                 .buffer(2, 1);
 
-        Observable<List<double[]>> touchDrag = touchStart(canvas).compose(log("touch down"))
-                .flatMap(e -> touchDiff.takeUntil(touchEnd(canvas).compose(log("touch up"))));
+        Observable<List<double[]>> touchDrag$ = touchStart(canvas).compose(log("touch down"))
+                .flatMap(e -> touchDiff$.takeUntil(touchEnd(canvas).compose(log("touch up"))));
 
-        Observable<Action1<Context2d>> paint = merge(mouseDrag, touchDrag)
-                .map(diff -> ctx -> strokeLine(ctx,
-                        diff.get(0)[0], diff.get(0)[1],
-                        diff.get(1)[0], diff.get(1)[1]
-                ));
+        Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint");
+        Observable<String> erase$ = keyPress(canvas, '2').map(e -> "erase");
 
-        paint.subscribe(action -> action.call(canvas2d));
+        Observable<String> tool$ = Observable.merge(paint$, erase$).startWith("paint")
+                .compose(log("tool selected")).share();
+
+        Observable<Action1<Context2d>> render$ = merge(mouseDrag$, touchDrag$)
+                .withLatestFrom(tool$, (diff, tool) -> ctx -> {
+                    switch (tool) {
+                        case "paint": strokeLine(ctx,
+                                diff.get(0)[0], diff.get(0)[1],
+                                diff.get(1)[0], diff.get(1)[1]);
+                            break;
+                        case "erase": ctx.clearRect(
+                                diff.get(0)[0] - 5, diff.get(0)[1] - 5,
+                                10, 10);
+                            break;
+                    }
+                });
+
+        render$.subscribe(action -> action.call(canvas2d));
 
         RootPanel.get().add(canvas);
     }
@@ -114,6 +120,7 @@ public class RxCanvas implements EntryPoint {
     }-*/;
 
     private <T> Observable.Transformer<T, T> log(String prefix) {
-        return o -> o.doOnNext(n -> log.info(prefix + ": " + Objects.toString(n)));
+        if (!log.isLoggable(Level.INFO)) return o -> o;
+        else return o -> o.doOnNext(n -> log.info(prefix + ": " + Objects.toString(n)));
     }
 }
