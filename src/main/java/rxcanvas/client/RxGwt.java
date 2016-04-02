@@ -2,8 +2,18 @@ package rxcanvas.client;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.DoubleClickEvent;
+import com.google.gwt.event.dom.client.DragEndEvent;
+import com.google.gwt.event.dom.client.DragEnterEvent;
+import com.google.gwt.event.dom.client.DragLeaveEvent;
+import com.google.gwt.event.dom.client.DragOverEvent;
+import com.google.gwt.event.dom.client.DragStartEvent;
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.event.dom.client.HasDoubleClickHandlers;
+import com.google.gwt.event.dom.client.HasDragEndHandlers;
+import com.google.gwt.event.dom.client.HasDragEnterHandlers;
+import com.google.gwt.event.dom.client.HasDragLeaveHandlers;
+import com.google.gwt.event.dom.client.HasDragOverHandlers;
+import com.google.gwt.event.dom.client.HasDragStartHandlers;
 import com.google.gwt.event.dom.client.HasKeyDownHandlers;
 import com.google.gwt.event.dom.client.HasKeyPressHandlers;
 import com.google.gwt.event.dom.client.HasKeyUpHandlers;
@@ -42,6 +52,26 @@ public class RxGwt {
 
     public static Observable<DoubleClickEvent> doubleClick(HasDoubleClickHandlers source) {
         return Observable.create(s -> register(s, source.addDoubleClickHandler(s::onNext)));
+    }
+
+    public static Observable<DragEndEvent> dragEnd(HasDragEndHandlers source) {
+        return Observable.create(s -> register(s, source.addDragEndHandler(s::onNext)));
+    }
+
+    public static Observable<DragEnterEvent> dragEnter(HasDragEnterHandlers source) {
+        return Observable.create(s -> register(s, source.addDragEnterHandler(s::onNext)));
+    }
+
+    public static Observable<DragLeaveEvent> dragLeave(HasDragLeaveHandlers source) {
+        return Observable.create(s -> register(s, source.addDragLeaveHandler(s::onNext)));
+    }
+
+    public static Observable<DragOverEvent> dragOver(HasDragOverHandlers source) {
+        return Observable.create(s -> register(s, source.addDragOverHandler(s::onNext)));
+    }
+
+    public static Observable<DragStartEvent> dragStart(HasDragStartHandlers source) {
+        return Observable.create(s -> register(s, source.addDragStartHandler(s::onNext)));
     }
 
     public static Observable<KeyDownEvent> keyDown(HasKeyDownHandlers source) {
