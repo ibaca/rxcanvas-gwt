@@ -1,13 +1,13 @@
 package rxcanvas.client;
 
+import static com.intendia.rxgwt.client.RxEvents.mouseDown;
+import static com.intendia.rxgwt.client.RxEvents.mouseMove;
+import static com.intendia.rxgwt.client.RxEvents.mouseUp;
+import static com.intendia.rxgwt.client.RxEvents.touchEnd;
+import static com.intendia.rxgwt.client.RxEvents.touchMove;
+import static com.intendia.rxgwt.client.RxEvents.touchStart;
+import static com.intendia.rxgwt.client.RxGwt.keyPress;
 import static rx.Observable.merge;
-import static rxcanvas.client.RxGwt.keyPress;
-import static rxcanvas.client.RxGwt.mouseDown;
-import static rxcanvas.client.RxGwt.mouseMove;
-import static rxcanvas.client.RxGwt.mouseUp;
-import static rxcanvas.client.RxGwt.touchEnd;
-import static rxcanvas.client.RxGwt.touchMove;
-import static rxcanvas.client.RxGwt.touchStart;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context;
