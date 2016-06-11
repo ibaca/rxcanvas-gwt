@@ -7,6 +7,7 @@ import static com.intendia.rxgwt.client.RxEvents.touchEnd;
 import static com.intendia.rxgwt.client.RxEvents.touchMove;
 import static com.intendia.rxgwt.client.RxEvents.touchStart;
 import static com.intendia.rxgwt.client.RxGwt.keyPress;
+import static java.util.Arrays.asList;
 import static rx.Observable.merge;
 
 import com.google.gwt.canvas.client.Canvas;
@@ -16,6 +17,7 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.Touch;
 import com.google.gwt.event.dom.client.MouseEvent;
 import com.google.gwt.user.client.ui.RootPanel;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -25,6 +27,8 @@ import rx.functions.Action1;
 
 public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
+    private static List<String> COLORS = asList("#828b20", "#b0ac31", "#cbc53d", "#fad779",
+            "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
 
     @Override public void onModuleLoad() {
         int width = RootPanel.getBodyElement().getClientWidth();
@@ -42,7 +46,7 @@ public class RxCanvas implements EntryPoint {
 
         Observable<List<double[]>> mouseDiff$ = mouseMove(canvas)
                 .map(e -> canvasPosition(canvas, e))
-                .buffer(2, 1);
+                .buffer(3, 1);
 
         Observable<List<double[]>> mouseDrag$ = mouseDown(canvas).compose(log("mouse down"))
                 .flatMap(e -> mouseDiff$.takeUntil(mouseUp(canvas).compose(log("mouse up"))));
@@ -55,29 +59,64 @@ public class RxCanvas implements EntryPoint {
         Observable<List<double[]>> touchDrag$ = touchStart(canvas).compose(log("touch down"))
                 .flatMap(e -> touchDiff$.takeUntil(touchEnd(canvas).compose(log("touch up"))));
 
-        Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint");
+        Observable<Object> down$ = merge(mouseDown(canvas), touchStart(canvas));
+        Observable<List<double[]>> drag$ = merge(mouseDrag$, touchDrag$);
+
+        Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint").startWith("default");
         Observable<String> erase$ = keyPress(canvas, '2').map(e -> "erase");
 
-        Observable<String> tool$ = Observable.merge(paint$, erase$).startWith("paint")
-                .compose(log("tool selected")).share();
+        // return a different color on each mouse down
 
-        Observable<Action1<Context2d>> render$ = merge(mouseDrag$, touchDrag$)
-                .withLatestFrom(tool$, (diff, tool) -> ctx -> {
-                    switch (tool) {
-                        case "paint": strokeLine(ctx,
-                                diff.get(0)[0], diff.get(0)[1],
-                                diff.get(1)[0], diff.get(1)[1]);
-                            break;
-                        case "erase": ctx.clearRect(
-                                diff.get(0)[0] - 5, diff.get(0)[1] - 5,
-                                10, 10);
-                            break;
-                    }
-                });
+        Observable<String> color$ = down$.startWith((Object) null)
+                .zipWith(Observable.from(COLORS).repeat(), (l, r) -> r);
+        Observable<Double> stroke$ = down$.startWith((Object) null)
+                .zipWith(Observable.from(() -> new Iterator<Double>() {
+                    @Override public boolean hasNext() { return true; }
+                    @Override public Double next() { return (Math.random() * 30) + 10; }
+                    @Override public void remove() { }
+                }), (l, r) -> r);
+        Observable<Options> options$ = Observable.combineLatest(color$, stroke$, Options::new);
 
+        // drag painting using sequential color
+        Observable<Observable<Action1<Context2d>>> painting$ = paint$.map(e -> drag$
+                .<Options, Action1<Context2d>>withLatestFrom(options$,
+                        (diff, options) -> ctx -> paint(options.color, options.stroke, diff, ctx)));
+
+        // drag erasing
+        Observable<Observable<Action1<Context2d>>> erasing$ = erase$.map(e -> drag$
+                .<Action1<Context2d>>map(diff -> ctx -> erase(diff, ctx)));
+
+        Observable<Action1<Context2d>> render$ = Observable.switchOnNext(Observable.merge(painting$, erasing$));
         render$.subscribe(action -> action.call(canvas2d));
 
         RootPanel.get().add(canvas);
+    }
+
+    static class Options {
+        final String color;
+        final Double stroke;
+        Options(String color, Double stroke) {
+            this.color = color;
+            this.stroke = stroke;
+        }
+    }
+
+    private void erase(List<double[]> diff, Context2d ctx) {
+        ctx.clearRect(diff.get(0)[0] - 5, diff.get(0)[1] - 5, 10, 10);
+    }
+
+    private void paint(String color, Double stroke, List<double[]> diff, Context2d ctx) {
+        tx(ctx, ignore -> {
+            ctx.beginPath();
+            ctx.bezierCurveTo(
+                    diff.get(0)[0], diff.get(0)[1],
+                    diff.get(1)[0], diff.get(1)[1],
+                    diff.get(2)[0], diff.get(2)[1]);
+            ctx.setLineCap(Context2d.LineCap.ROUND);
+            ctx.setLineWidth(stroke);
+            ctx.setStrokeStyle(color);
+            ctx.stroke();
+        });
     }
 
     private double[] canvasPosition(Canvas canvas, MouseEvent<?> e) {
@@ -92,20 +131,6 @@ public class RxCanvas implements EntryPoint {
         ctx.save();
         draw.call(ctx);
         ctx.restore();
-    }
-
-    public void strokeRect(Context2d ctx, int x, int y, int width, int height) {
-        ctx.beginPath();
-        ctx.rect(x, y, width, height);
-        ctx.stroke();
-
-    }
-
-    public static void strokeLine(Context2d ctx, double x1, double y1, double x2, double y2) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
     }
 
     public static native int ratio(Context context) /*-{
