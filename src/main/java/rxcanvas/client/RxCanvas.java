@@ -7,7 +7,9 @@ import static com.intendia.rxgwt.client.RxEvents.touchEnd;
 import static com.intendia.rxgwt.client.RxEvents.touchMove;
 import static com.intendia.rxgwt.client.RxEvents.touchStart;
 import static com.intendia.rxgwt.client.RxGwt.keyPress;
+import static java.lang.Math.random;
 import static java.util.Arrays.asList;
+import static rx.Observable.just;
 import static rx.Observable.merge;
 
 import com.google.gwt.canvas.client.Canvas;
@@ -17,7 +19,6 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.Touch;
 import com.google.gwt.event.dom.client.MouseEvent;
 import com.google.gwt.user.client.ui.RootPanel;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -65,17 +66,12 @@ public class RxCanvas implements EntryPoint {
         Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint").startWith("default");
         Observable<String> erase$ = keyPress(canvas, '2').map(e -> "erase");
 
-        // return a different color on each mouse down
-
-        Observable<String> color$ = down$.startWith((Object) null)
-                .zipWith(Observable.from(COLORS).repeat(), (l, r) -> r);
-        Observable<Double> stroke$ = down$.startWith((Object) null)
-                .zipWith(Observable.from(() -> new Iterator<Double>() {
-                    @Override public boolean hasNext() { return true; }
-                    @Override public Double next() { return (Math.random() * 30) + 10; }
-                    @Override public void remove() { }
-                }), (l, r) -> r);
-        Observable<Options> options$ = Observable.combineLatest(color$, stroke$, Options::new);
+        // return a different color and size on each mouse down
+        Observable<String> colors$ = Observable.from(COLORS).repeat();
+        Observable<String> color$ = down$.startWith((Object) null).zipWith(colors$, (l, r) -> r);
+        Observable<Double> sizes$ = Observable.defer(() -> just(random() * 30 + 10)).repeat();
+        Observable<Double> size$ = down$.startWith((Object) null).zipWith(sizes$, (l, r) -> r);
+        Observable<Options> options$ = Observable.combineLatest(color$, size$, Options::new);
 
         // drag painting using sequential color
         Observable<Observable<Action1<Context2d>>> painting$ = paint$.map(e -> drag$
