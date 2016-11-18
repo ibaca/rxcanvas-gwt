@@ -18,6 +18,7 @@ import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.dom.client.Touch;
 import com.google.gwt.event.dom.client.MouseEvent;
+import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.RootPanel;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,7 @@ public class RxCanvas implements EntryPoint {
         int height = RootPanel.getBodyElement().getClientHeight();
 
         Canvas canvas = Canvas.createIfSupported();
+        DOM.setCapture(canvas.getElement());
         canvas.setWidth(width + "px");
         canvas.setHeight(height + "px");
         Context2d canvas2d = canvas.getContext2d();
@@ -55,12 +57,12 @@ public class RxCanvas implements EntryPoint {
         Observable<List<double[]>> touchDiff$ = touchMove(canvas)
                 .map(e -> e.getTouches().get(0))
                 .map(e -> canvasPosition(canvas, e))
-                .buffer(2, 1);
+                .buffer(3, 1);
 
-        Observable<List<double[]>> touchDrag$ = touchStart(canvas).compose(log("touch down"))
-                .flatMap(e -> touchDiff$.takeUntil(touchEnd(canvas).compose(log("touch up"))));
+        Observable<List<double[]>> touchDrag$ = touchStart(canvas).compose(log("touch start"))
+                .flatMap(e -> touchDiff$.takeUntil(touchEnd(canvas).compose(log("touch end"))));
 
-        Observable<Object> down$ = merge(mouseDown(canvas), touchStart(canvas));
+        Observable<?> down$ = Observable.<Object>merge(mouseDown(canvas), touchStart(canvas)).startWith((Object) null);
         Observable<List<double[]>> drag$ = merge(mouseDrag$, touchDrag$);
 
         Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint").startWith("default");
@@ -68,9 +70,9 @@ public class RxCanvas implements EntryPoint {
 
         // return a different color and size on each mouse down
         Observable<String> colors$ = Observable.from(COLORS).repeat();
-        Observable<String> color$ = down$.startWith((Object) null).zipWith(colors$, (l, r) -> r);
+        Observable<String> color$ = down$.zipWith(colors$, (l, r) -> r);
         Observable<Double> sizes$ = Observable.defer(() -> just(random() * 30 + 10)).repeat();
-        Observable<Double> size$ = down$.startWith((Object) null).zipWith(sizes$, (l, r) -> r);
+        Observable<Double> size$ = down$.zipWith(sizes$, (l, r) -> r);
         Observable<Options> options$ = Observable.combineLatest(color$, size$, Options::new);
 
         // drag painting using sequential color
