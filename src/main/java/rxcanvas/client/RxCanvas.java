@@ -16,6 +16,7 @@ import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Touch;
 import com.google.gwt.event.dom.client.MouseEvent;
 import com.google.gwt.user.client.DOM;
@@ -33,8 +34,9 @@ public class RxCanvas implements EntryPoint {
             "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
 
     @Override public void onModuleLoad() {
-        int width = RootPanel.getBodyElement().getClientWidth();
-        int height = RootPanel.getBodyElement().getClientHeight();
+        Element body = RootPanel.getBodyElement();
+        int width = body.getClientWidth();
+        int height = body.getClientHeight();
 
         Canvas canvas = Canvas.createIfSupported();
         DOM.setCapture(canvas.getElement());
@@ -62,7 +64,7 @@ public class RxCanvas implements EntryPoint {
         Observable<List<double[]>> touchDrag$ = touchStart(canvas).compose(log("touch start"))
                 .flatMap(e -> touchDiff$.takeUntil(touchEnd(canvas).compose(log("touch end"))));
 
-        Observable<?> down$ = Observable.<Object>merge(mouseDown(canvas), touchStart(canvas)).startWith((Object) null);
+        Observable<?> up$ = Observable.<Object>merge(mouseUp(canvas), touchEnd(canvas)).startWith((Object) null);
         Observable<List<double[]>> drag$ = merge(mouseDrag$, touchDrag$);
 
         Observable<String> paint$ = keyPress(canvas, '1').map(e -> "paint").startWith("default");
@@ -70,10 +72,10 @@ public class RxCanvas implements EntryPoint {
 
         // return a different color and size on each mouse down
         Observable<String> colors$ = Observable.from(COLORS).repeat();
-        Observable<String> color$ = down$.zipWith(colors$, (l, r) -> r);
+        Observable<String> color$ = up$.zipWith(colors$, (l, r) -> r).doOnNext(n -> setStyle(body, "--color", n));
         Observable<Double> sizes$ = Observable.defer(() -> just(random() * 30 + 10)).repeat();
-        Observable<Double> size$ = down$.zipWith(sizes$, (l, r) -> r);
-        Observable<Options> options$ = Observable.combineLatest(color$, size$, Options::new);
+        Observable<Double> size$ = up$.zipWith(sizes$, (l, r) -> r).doOnNext(n -> setStyle(body, "--size", n));
+        Observable<Options> options$ = Observable.combineLatest(color$, size$, Options::new).share();
 
         // drag painting using sequential color
         Observable<Observable<Action1<Context2d>>> painting$ = paint$.map(e -> drag$
@@ -140,6 +142,10 @@ public class RxCanvas implements EntryPoint {
                 context.oBackingStorePixelRatio || 1,
             ratio = devicePixelRatio / backingStoreRatio;
         return ratio;
+    }-*/;
+
+    public static native void setStyle(Element e, String name, Object value) /*-{
+        e.style.setProperty(name, value);
     }-*/;
 
     private <T> Observable.Transformer<T, T> log(String prefix) {

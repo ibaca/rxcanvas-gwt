@@ -14,6 +14,8 @@
             height: 100%;
             overflow: hidden;
             box-sizing: border-box;
+            --color: #ccc;
+            --size: 0;
         }
 
         html {
@@ -25,6 +27,8 @@
             margin: 0;
             background: white;
             border: 1px solid #ccc;
+            box-shadow: var(--color) 0 0 calc(var(--size) * 1px);
+            transition: box-shadow 1s;
         }
 
         canvas {
