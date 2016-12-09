@@ -77,6 +77,12 @@
                 </configuration><!-- @formatter:on -->
             </plugin>
             <plugin>
+                <!-- just here to make IntelliJ happy -->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>gwt-maven-plugin</artifactId>
+                <version>2.8.0</version>
+            </plugin>
+            <plugin>
                 <groupId>com.github.github</groupId>
                 <artifactId>site-maven-plugin</artifactId>
                 <version>0.12</version>
