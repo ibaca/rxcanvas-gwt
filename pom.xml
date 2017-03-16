@@ -71,6 +71,7 @@
                 <configuration><!-- @formatter:off -->
                     <moduleName>rxcanvas.RxCanvas</moduleName>
                     <skipModule>true</skipModule>
+                    <failOnError>true</failOnError>
                     <startupUrls><url>/rxcanvas</url></startupUrls>
                     <compilerArgs><arg>-gen</arg><arg>${project.build.directory}/gwt/gen</arg></compilerArgs>
                     <codeserverArgs><arg>-bindAddress</arg><arg>0.0.0.0</arg><arg>-style</arg><arg>${gwt.style}</arg></codeserverArgs>
