@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello World</title>
+    <style type="text/css">
+        html, body, #wrapper {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        #wrapper td {
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        input {
+            font-family: "Arial", Arial, sans-serif;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .border {
+            border: 2px solid #cccccc;
+            border-radius: 5px;
+        }
+
+        .border:focus {
+            outline: none;
+            border-color: #8ecaed;
+            box-shadow: 0 0 5px #8ecaed;
+        }
+    </style>
+    <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+    <script type="text/javascript">
+        var applicationID = '20736230';
+        var namespace = 'urn:x-cast:com.intendia.rxcanvas-gwt';
+        var session = null;
+        if (!chrome.cast || !chrome.cast.isAvailable) {
+            setTimeout(initializeCastApi, 1000);
+        }
+        function initializeCastApi() {
+            var sessionRequest = new chrome.cast.SessionRequest(applicationID);
+            var apiConfig = new chrome.cast.ApiConfig(sessionRequest, sessionListener, receiverListener);
+            chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+        }
+        function onInitSuccess() {
+            appendMessage('onInitSuccess');
+        }
+        function onError(message) {
+            appendMessage('onError: ' + JSON.stringify(message));
+        }
+        function onSuccess(message) {
+            appendMessage('onSuccess: ' + message);
+        }
+        function onStopAppSuccess() {
+            appendMessage('onStopAppSuccess');
+        }
+        function sessionListener(e) {
+            appendMessage('New session ID:' + e.sessionId);
+            session = e;
+            session.addUpdateListener(sessionUpdateListener);
+            session.addMessageListener(namespace, receiverMessage);
+        }
+        function sessionUpdateListener(isAlive) {
+            var message = isAlive ? 'Session Updated' : 'Session Removed';
+            message += ': ' + session.sessionId;
+            appendMessage(message);
+            if (!isAlive) {
+                session = null;
+            }
+        }
+        function receiverMessage(namespace, message) {
+            appendMessage('receiverMessage: ' + namespace + ', ' + message);
+        }
+        function receiverListener(e) {
+            if (e === 'available') appendMessage('receiver found');
+            else appendMessage('receiver list empty');
+        }
+        function stopApp() {
+            session.stop(onStopAppSuccess, onError);
+        }
+        function sendMessage(message) {
+            if (session != null) {
+                session.sendMessage(namespace, message, onSuccess.bind(this, 'Message sent: ' + message), onError);
+            } else {
+                chrome.cast.requestSession(function (e) {
+                    session = e;
+                    session.sendMessage(namespace, message, onSuccess.bind(this, 'Message sent: ' + message), onError);
+                }, onError);
+            }
+        }
+        function appendMessage(message) {
+            console.log(message);
+            var dw = document.getElementById('debugmessage');
+            dw.innerHTML += '\n' + JSON.stringify(message);
+        }
+        function update() {
+            sendMessage(document.getElementById('input').value);
+        }
+        function transcribe(words) {
+            sendMessage(words);
+        }
+    </script>
+</head>
+<body>
+<table id="wrapper">
+    <tr>
+        <td>
+            <form method="get" action="JavaScript:update();">
+                <input id="input" class="border" type="text" size="30" onkeyup="update()"
+                       onwebkitspeechchange="transcribe(this.value)" x-webkit-speech/>
+            </form>
+        </td>
+    </tr>
+</table>
+
+<!-- Debbugging output -->
+<div style="margin:10px; visibility:hidden;">
+      <textarea rows="20" cols="70" id="debugmessage">
+      </textarea>
+</div>
+
+<script type="text/javascript">
+    document.getElementById('input').focus();
+</script>
+</body>
+</html>
