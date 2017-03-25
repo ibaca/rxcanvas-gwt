@@ -18,6 +18,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <gwt.version>2.8.0</gwt.version>
         <github.global.server>github</github.global.server>
+        <applicationId>20736230</applicationId>
         <gwt.style>OBFUSCATED</gwt.style><!-- DETAILED, OBFUSCATED or PRETTY -->
     </properties>
 
@@ -73,9 +74,15 @@
                     <skipModule>true</skipModule>
                     <failOnError>true</failOnError>
                     <startupUrls><url>/rxcanvas</url></startupUrls>
-                    <compilerArgs><arg>-gen</arg><arg>${project.build.directory}/gwt/gen</arg></compilerArgs>
-                    <codeserverArgs><arg>-bindAddress</arg><arg>0.0.0.0</arg><arg>-style</arg><arg>${gwt.style}</arg></codeserverArgs>
-                    <devmodeArgs><arg>-bindAddress</arg><arg>0.0.0.0</arg><arg>-style</arg><arg>${gwt.style}</arg></devmodeArgs>
+                    <compilerArgs>
+                        <arg>-gen</arg><arg>${project.build.directory}/gwt/gen</arg>
+                        <arg>-setProperty</arg><arg>applicationId=${applicationId}</arg>
+                    </compilerArgs>
+                    <devmodeArgs>
+                        <arg>-bindAddress</arg><arg>0.0.0.0</arg>
+                        <arg>-style</arg><arg>${gwt.style}</arg>
+                        <arg>-setProperty</arg><arg>applicationId=${applicationId}</arg>
+                    </devmodeArgs>
                 </configuration><!-- @formatter:on -->
             </plugin>
             <plugin>

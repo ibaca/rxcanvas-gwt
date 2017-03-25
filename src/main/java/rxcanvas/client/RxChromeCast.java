@@ -82,7 +82,10 @@ public class RxChromeCast {
             manager.onSenderDisconnected = event -> {
                 GWT.log("Received sender disconnected event " + stringify(event));
             };
+        }
 
+        /** Message bus should be subscribed before the receiver get started! */
+        public void start() {
             // initialize the CastReceiverManager with an application status message
             CastReceiverManager.Config config = new CastReceiverManager.Config();
             config.statusText = "RxCanvas is starting…";

@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsPackage;
 import jsinterop.annotations.JsType;
@@ -51,34 +50,10 @@ public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
     private static List<String> COLORS = asList("#828b20", "#b0ac31", "#cbc53d", "#fad779",
             "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
-    private static String APPLICATION_ID = "20736230", STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
-
-    @Nullable Sender sender = null;
+    private static String APPLICATION_ID = System.getProperty("applicationId"),
+            STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
 
     @Override public void onModuleLoad() {
-        if (ChromeCast.isAvailable()) {
-            sender = new Sender(APPLICATION_ID);
-            Observable.combineLatest(sender.receiverAvailable(), sender.session(), (av, se) -> av && !se.isPresent())
-                    .switchMap(connectible -> {
-                        if (!connectible) return empty();
-
-                        // if connectible, show a awesome button to open chrome cast dialog
-                        Panel panel = new HorizontalPanel(); panel.addStyleName("buttons");
-                        Button cast = new Button("Connect to Chrome Cast"); panel.add(cast);
-                        Button ignore = new Button("Not now"); panel.add(ignore);
-                        Observable<Object> cancel$ = merge(click(ignore), timer(10, TimeUnit.SECONDS));
-                        return click(cast).take(1).toSingle()
-                                .flatMap(click -> sender.requestSession())
-                                .toObservable().retry().takeUntil(cancel$)
-                                .doOnSubscribe(() -> RootPanel.get().add(panel))
-                                .doOnTerminate(panel::removeFromParent)
-                                .doOnUnsubscribe(panel::removeFromParent);
-                    }).subscribe();
-        }
-
-        Observable<Stroke> receiverChannel$ = !CastReceiver.isAvailable() ? Observable.empty() :
-                new Receiver().castMessage(STROKE_CHANNEL).map(event -> RxCanvas.<Stroke>parse(event.data));
-
         Element body = RootPanel.getBodyElement();
         int width = body.getClientWidth();
         int height = body.getClientHeight();
@@ -149,12 +124,39 @@ public class RxCanvas implements EntryPoint {
         bind("interactive painter", Observable.switchOnNext(merge(painting$, erasing$)).doOnNext(painter));
 
         // bind chrome cast receiver
-        bind("chrome cast receiver", receiverChannel$.map(this::paintStroke).doOnNext(painter));
+        if (CastReceiver.isAvailable()) {
+            GWT.log("Initializing chrome cast receiver…");
+            Receiver receiver = new Receiver();
+            Observable<Stroke> receiverChannel$ = receiver.castMessage(STROKE_CHANNEL)
+                    .map(event -> RxCanvas.<Stroke>parse(event.data));
+            bind("chrome cast receiver", receiverChannel$.map(this::paintStroke).doOnNext(painter));
+            receiver.start();
+        }
 
         // bind chrome cast sender
-        Function<Session, Observable<String>> castMessage = session -> stroke$.onBackpressureBuffer()
-                .concatMap(stroke -> castMessage(session, STROKE_CHANNEL, stringify(stroke)).toObservable());
-        bind("chrome cast sender", sender.session().switchMap(s -> s.map(castMessage).orElse(empty())));
+        if (ChromeCast.isAvailable()) {
+            GWT.log("Initializing chrome cast sender…");
+            Sender sender = new Sender(APPLICATION_ID);
+            Observable.combineLatest(sender.receiverAvailable(), sender.session(), (av, se) -> av && !se.isPresent())
+                    .switchMap(connectible -> {
+                        if (!connectible) return empty();
+
+                        // if connectible, show a awesome button to open chrome cast dialog
+                        Panel panel = new HorizontalPanel(); panel.addStyleName("buttons");
+                        Button cast = new Button("Connect to Chrome Cast"); panel.add(cast);
+                        Button ignore = new Button("Not now"); panel.add(ignore);
+                        Observable<Object> cancel$ = merge(click(ignore), timer(10, TimeUnit.SECONDS));
+                        return click(cast).take(1).toSingle()
+                                .flatMap(click -> sender.requestSession())
+                                .toObservable().retry().takeUntil(cancel$)
+                                .doOnSubscribe(() -> RootPanel.get().add(panel))
+                                .doOnTerminate(panel::removeFromParent)
+                                .doOnUnsubscribe(panel::removeFromParent);
+                    }).subscribe();
+            Function<Session, Observable<String>> castMessage = session -> stroke$.onBackpressureBuffer()
+                    .concatMap(stroke -> castMessage(session, STROKE_CHANNEL, stringify(stroke)).toObservable());
+            bind("chrome cast sender", sender.session().switchMap(s -> s.map(castMessage).orElse(empty())));
+        }
     }
 
     static void bind(String summary, Observable<?> o) {
