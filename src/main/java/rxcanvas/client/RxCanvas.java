@@ -14,12 +14,9 @@ import static rx.Observable.empty;
 import static rx.Observable.just;
 import static rx.Observable.merge;
 import static rx.Observable.timer;
-import static rxcanvas.client.ChromeCast.castMessage;
+import static rxcanvas.client.RxChromeCast.castMessage;
 
-import cast.receiver.CastMessageBus;
 import cast.receiver.CastReceiver;
-import cast.receiver.CastReceiverManager;
-import cast.receiver.CastReceiverManager.Config;
 import chrome.cast.ChromeCast;
 import chrome.cast.Session;
 import com.google.gwt.canvas.client.Canvas;
@@ -41,12 +38,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsPackage;
 import jsinterop.annotations.JsType;
 import rx.Observable;
 import rx.functions.Action1;
-import rx.subjects.PublishSubject;
+import rxcanvas.client.RxChromeCast.Receiver;
+import rxcanvas.client.RxChromeCast.Sender;
 
 public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
@@ -54,72 +53,31 @@ public class RxCanvas implements EntryPoint {
             "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
     private static String APPLICATION_ID = "20736230", STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
 
-    rxcanvas.client.ChromeCast.Sender sender = null;
+    @Nullable Sender sender = null;
 
     @Override public void onModuleLoad() {
         if (ChromeCast.isAvailable()) {
-            sender = new rxcanvas.client.ChromeCast.Sender(APPLICATION_ID);
-            Observable.combineLatest(sender.receiverAvailable(), sender.session(),
-                    (av, se) -> {
-                        boolean connectible = av && !se.isPresent();
-                        GWT.log("available=" + av + ", session=" + se.isPresent() + ", connectible=" + connectible);
-                        return connectible;
-                    })
+            sender = new Sender(APPLICATION_ID);
+            Observable.combineLatest(sender.receiverAvailable(), sender.session(), (av, se) -> av && !se.isPresent())
                     .switchMap(connectible -> {
                         if (!connectible) return empty();
 
                         // if connectible, show a awesome button to open chrome cast dialog
                         Panel panel = new HorizontalPanel(); panel.addStyleName("buttons");
-                        Button cast = new Button("Connect to Chrome Cast!"); panel.add(cast);
-                        Button ignore = new Button("Not now!"); panel.add(ignore);
+                        Button cast = new Button("Connect to Chrome Cast"); panel.add(cast);
+                        Button ignore = new Button("Not now"); panel.add(ignore);
                         Observable<Object> cancel$ = merge(click(ignore), timer(10, TimeUnit.SECONDS));
                         return click(cast).take(1).toSingle()
                                 .flatMap(click -> sender.requestSession())
                                 .toObservable().retry().takeUntil(cancel$)
-                                .doOnSubscribe(() -> {
-                                    RootPanel.get().add(panel);
-                                })
+                                .doOnSubscribe(() -> RootPanel.get().add(panel))
                                 .doOnTerminate(panel::removeFromParent)
                                 .doOnUnsubscribe(panel::removeFromParent);
                     }).subscribe();
         }
 
-        PublishSubject<Stroke> receiverChannel$ = PublishSubject.create();
-        if (CastReceiver.cast != null) {
-            // cast.receiver.logger.setLevelValue(0);
-            CastReceiverManager castReceiverManager = CastReceiverManager.getInstance();
-            GWT.log("Starting receiver manager…");
-            castReceiverManager.onReady = event -> {
-                GWT.log("Received ready event " + stringify(event));
-                castReceiverManager.setApplicationState("Application status is ready…");
-            };
-            castReceiverManager.onSenderConnected = event -> {
-                GWT.log("Received sender connected event " + stringify(event));
-                GWT.log(castReceiverManager.getSender(event.senderId).userAgent);
-            };
-            castReceiverManager.onSenderDisconnected = event -> {
-                GWT.log("Received sender disconnected event " + stringify(event));
-                // if (castReceiverManager.getSenders().length == 0) close();
-            };
-            castReceiverManager.onSystemVolumeChanged = event -> {
-                GWT.log("Received system volume changed event " + stringify(event));
-
-            };
-            // create a CastMessageBus to handle messages for a custom namespace
-            CastMessageBus messageBus = castReceiverManager.getCastMessageBus(STROKE_CHANNEL);
-            messageBus.onMessage = event -> {
-                GWT.log("Message [" + event.senderId + "]: " + event.data);
-                receiverChannel$.onNext(parse(event.data));
-                messageBus.send(event.senderId, event.data);
-            };
-            // initialize the CastReceiverManager with an application status message
-            Config config = new Config();
-            config.statusText = "Application is starting";
-            config.maxInactivity = 120;
-            config.maxPlayers = 10;
-            castReceiverManager.start(config);
-            GWT.log("Receiver manager started!");
-        }
+        Observable<Stroke> receiverChannel$ = !CastReceiver.isAvailable() ? Observable.empty() :
+                new Receiver().castMessage(STROKE_CHANNEL).map(event -> RxCanvas.<Stroke>parse(event.data));
 
         Element body = RootPanel.getBodyElement();
         int width = body.getClientWidth();
@@ -191,7 +149,7 @@ public class RxCanvas implements EntryPoint {
         bind("interactive painter", Observable.switchOnNext(merge(painting$, erasing$)).doOnNext(painter));
 
         // bind chrome cast receiver
-        bind("chrome cast receiver", receiverChannel$.map(this::paintStroke).retry().doOnNext(painter));
+        bind("chrome cast receiver", receiverChannel$.map(this::paintStroke).doOnNext(painter));
 
         // bind chrome cast sender
         Function<Session, Observable<String>> castMessage = session -> stroke$.onBackpressureBuffer()

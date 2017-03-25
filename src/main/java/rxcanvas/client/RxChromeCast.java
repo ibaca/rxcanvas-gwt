@@ -2,7 +2,10 @@ package rxcanvas.client;
 
 import static rxcanvas.client.RxCanvas.stringify;
 
+import cast.receiver.CastMessageBus;
+import cast.receiver.CastReceiverManager;
 import chrome.cast.ApiConfig;
+import chrome.cast.ChromeCast;
 import chrome.cast.ChromeCast.A1;
 import chrome.cast.Session;
 import chrome.cast.SessionRequest;
@@ -11,8 +14,9 @@ import java.util.Optional;
 import rx.Observable;
 import rx.Single;
 import rx.subjects.BehaviorSubject;
+import rx.subscriptions.Subscriptions;
 
-public class ChromeCast {
+public class RxChromeCast {
     static class Sender {
         private final BehaviorSubject<Optional<Session>> session = BehaviorSubject.create(Optional.empty());
         private final BehaviorSubject<Boolean> receiverAvailable = BehaviorSubject.create();
@@ -24,7 +28,7 @@ public class ChromeCast {
                 GWT.log("ChromeCast receiver " + receiver);
                 receiverAvailable.onNext(receiver.equals("available"));
             });
-            chrome.cast.ChromeCast.initialize(apiConfig, () -> GWT.log("ChromeCast SDK initialized"), onError);
+            ChromeCast.initialize(apiConfig, () -> GWT.log("ChromeCast SDK initialized"), onError);
         }
 
         public Observable<Boolean> receiverAvailable() { return receiverAvailable; }
@@ -32,7 +36,7 @@ public class ChromeCast {
         public Observable<Optional<Session>> session() { return session; }
 
         public Single<Session> requestSession() {
-            return Single.create(s -> chrome.cast.ChromeCast.requestSession(
+            return Single.create(s -> ChromeCast.requestSession(
                     success -> {
                         setSession(success);
                         s.onSuccess(success);
@@ -59,5 +63,41 @@ public class ChromeCast {
         return Single.create(s -> session.sendMessage(namespace, message,
                 () -> s.onSuccess("success"),
                 e -> s.onError(new RuntimeException("failure: " + stringify(e)))));
+    }
+
+    public static class Receiver {
+        private final CastReceiverManager manager;
+
+        public Receiver() {
+            GWT.log("Starting receiver manager…");
+            manager = CastReceiverManager.getInstance();
+            manager.onReady = event -> {
+                GWT.log("Received ready event " + stringify(event));
+                manager.setApplicationState("RxCanvas receiver ready");
+            };
+            manager.onSenderConnected = event -> {
+                GWT.log("Received sender connected event " + stringify(event));
+                GWT.log(manager.getSender(event.senderId).userAgent);
+            };
+            manager.onSenderDisconnected = event -> {
+                GWT.log("Received sender disconnected event " + stringify(event));
+            };
+
+            // initialize the CastReceiverManager with an application status message
+            CastReceiverManager.Config config = new CastReceiverManager.Config();
+            config.statusText = "RxCanvas is starting…";
+            config.maxInactivity = 120;
+            manager.start(config);
+            GWT.log("Receiver manager started!");
+        }
+
+        public Observable<CastMessageBus.Event> castMessage(String namespace) {
+            return Observable.create(s -> {
+                CastMessageBus messageBus = manager.getCastMessageBus(namespace);
+                A1<CastMessageBus.Event> listener = s::onNext;
+                messageBus.addEventListener("message", listener);
+                s.add(Subscriptions.create(() -> messageBus.removeEventListener("message", listener)));
+            });
+        }
     }
 }

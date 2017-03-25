@@ -18,7 +18,7 @@ public class ChromeCast {
 
     @JsProperty(namespace = JsPackage.GLOBAL) private static Object chrome;
     @JsProperty(namespace = "chrome") private static Object cast;
-    @JsOverlay public static  boolean isAvailable() { return chrome != null && cast != null && isAvailable; }
+    @JsOverlay public static boolean isAvailable() { return chrome != null && cast != null && isAvailable; }
 
     @FunctionalInterface @JsFunction public interface A0 {
         void apply();
@@ -30,5 +30,13 @@ public class ChromeCast {
 
     @FunctionalInterface @JsFunction public interface A2<T1, T2> {
         void apply(T1 t1, T2 t2);
+    }
+
+    @JsType(isNative = true)
+    public interface EventTarget {
+        <E> void addEventListener(String type, A1<E> listener);
+        <E> void addEventListener(String type, A1<E> listener, boolean useCapture);
+        void removeEventListener(String type, A1<?> listener);
+        void removeEventListener(String type, A1<?> listener, boolean useCapture);
     }
 }
