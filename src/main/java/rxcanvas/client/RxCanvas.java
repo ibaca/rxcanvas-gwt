@@ -50,6 +50,7 @@ public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
     private static List<String> COLORS = asList("#828b20", "#b0ac31", "#cbc53d", "#fad779",
             "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
+    // use 'mvn gwt:devmode -DapplicationId=XXYYZZ' to use a local development application id
     private static String APPLICATION_ID = System.getProperty("applicationId"),
             STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
 
