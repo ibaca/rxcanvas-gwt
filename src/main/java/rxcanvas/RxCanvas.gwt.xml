@@ -4,9 +4,10 @@
     <inherits name="chrome.cast.ChromeCast"/>
     <inherits name="cast.receiver.CastReceiver"/>
     <inherits name="com.google.gwt.user.User"/>
-    <inherits name="com.intendia.rxgwt.RxGwt"/>
+    <inherits name="com.intendia.rxgwt.RxUser"/>
     <set-property name="compiler.useSourceMaps" value="true"/>
     <set-configuration-property name="includeSourceMapUrl" value="src/__HASH___sourceMap__FRAGMENT__.json"/>
     <define-configuration-property name="applicationId" is-multi-valued="false"/>
     <entry-point class="rxcanvas.client.RxCanvas"/>
+    <collapse-all-properties/>
 </module>

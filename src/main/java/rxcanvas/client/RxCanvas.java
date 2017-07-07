@@ -1,13 +1,13 @@
 package rxcanvas.client;
 
-import static com.intendia.rxgwt.client.RxEvents.mouseDown;
-import static com.intendia.rxgwt.client.RxEvents.mouseMove;
-import static com.intendia.rxgwt.client.RxEvents.mouseUp;
-import static com.intendia.rxgwt.client.RxEvents.touchEnd;
-import static com.intendia.rxgwt.client.RxEvents.touchMove;
-import static com.intendia.rxgwt.client.RxEvents.touchStart;
-import static com.intendia.rxgwt.client.RxGwt.keyPress;
-import static com.intendia.rxgwt.client.RxHandlers.click;
+import static com.intendia.rxgwt.user.RxEvents.mouseDown;
+import static com.intendia.rxgwt.user.RxEvents.mouseMove;
+import static com.intendia.rxgwt.user.RxEvents.mouseUp;
+import static com.intendia.rxgwt.user.RxEvents.touchEnd;
+import static com.intendia.rxgwt.user.RxEvents.touchMove;
+import static com.intendia.rxgwt.user.RxEvents.touchStart;
+import static com.intendia.rxgwt.user.RxUser.keyPress;
+import static com.intendia.rxgwt.user.RxHandlers.click;
 import static java.lang.Math.random;
 import static java.util.Arrays.asList;
 import static rx.Observable.empty;

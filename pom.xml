@@ -16,10 +16,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <gwt.version>2.8.0</gwt.version>
+        <gwt.version>2.8.1</gwt.version>
         <github.global.server>github</github.global.server>
         <applicationId>20736230</applicationId>
-        <gwt.style>OBFUSCATED</gwt.style><!-- DETAILED, OBFUSCATED or PRETTY -->
     </properties>
 
     <dependencyManagement>
@@ -48,12 +47,12 @@
         <dependency>
             <groupId>com.intendia.gwt</groupId>
             <artifactId>rxjava-gwt</artifactId>
-            <version>1.0.14-beta1</version>
+            <version>1.3.0-beta2</version>
         </dependency>
         <dependency>
-            <groupId>com.intendia.gwt</groupId>
+            <groupId>com.intendia.gwt.rxgwt</groupId>
             <artifactId>rxgwt</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>HEAD-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -67,7 +66,7 @@
             <plugin>
                 <groupId>net.ltgt.gwt.maven</groupId>
                 <artifactId>gwt-maven-plugin</artifactId>
-                <version>1.0-rc-6</version>
+                <version>1.0-rc-8</version>
                 <extensions>true</extensions>
                 <configuration><!-- @formatter:off -->
                     <moduleName>rxcanvas.RxCanvas</moduleName>
@@ -82,7 +81,7 @@
                     </compilerArgs>
                     <devmodeArgs>
                         <arg>-bindAddress</arg><arg>0.0.0.0</arg>
-                        <arg>-style</arg><arg>${gwt.style}</arg>
+                        <arg>-style</arg><arg>PRETTY</arg>
                         <arg>-setProperty</arg><arg>applicationId=${applicationId}</arg>
                     </devmodeArgs>
                 </configuration><!-- @formatter:on -->
