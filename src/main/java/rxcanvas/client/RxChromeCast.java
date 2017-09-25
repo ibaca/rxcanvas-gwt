@@ -10,15 +10,14 @@ import chrome.cast.ChromeCast.A1;
 import chrome.cast.Session;
 import chrome.cast.SessionRequest;
 import com.google.gwt.core.client.GWT;
+import io.reactivex.Observable;
+import io.reactivex.Single;
+import io.reactivex.subjects.BehaviorSubject;
 import java.util.Optional;
-import rx.Observable;
-import rx.Single;
-import rx.subjects.BehaviorSubject;
-import rx.subscriptions.Subscriptions;
 
 public class RxChromeCast {
     static class Sender {
-        private final BehaviorSubject<Optional<Session>> session = BehaviorSubject.create(Optional.empty());
+        private final BehaviorSubject<Optional<Session>> session = BehaviorSubject.createDefault(Optional.empty());
         private final BehaviorSubject<Boolean> receiverAvailable = BehaviorSubject.create();
         private final A1<Object> onError = message -> GWT.log("onError: " + stringify(message));
 
@@ -99,7 +98,7 @@ public class RxChromeCast {
                 CastMessageBus messageBus = manager.getCastMessageBus(namespace);
                 A1<CastMessageBus.Event> listener = s::onNext;
                 messageBus.addEventListener("message", listener);
-                s.add(Subscriptions.create(() -> messageBus.removeEventListener("message", listener)));
+                s.setCancellable(() -> messageBus.removeEventListener("message", listener));
             });
         }
     }
