@@ -43,11 +43,6 @@
             <artifactId>gwt-dev</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.intendia.gwt</groupId>
-            <artifactId>rxjava2-gwt</artifactId>
-            <version>HEAD-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>com.intendia.gwt.rxgwt2</groupId>
             <artifactId>rxgwt</artifactId>
             <version>HEAD-SNAPSHOT</version>
@@ -64,7 +59,7 @@
             <plugin>
                 <groupId>net.ltgt.gwt.maven</groupId>
                 <artifactId>gwt-maven-plugin</artifactId>
-                <version>1.0-rc-9</version>
+                <version>1.0-rc-10</version>
                 <extensions>true</extensions>
                 <configuration><!-- @formatter:off -->
                     <moduleName>rxcanvas.RxCanvas</moduleName>
