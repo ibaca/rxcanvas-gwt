@@ -42,7 +42,6 @@ import io.reactivex.Observable;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.functions.Consumer;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -55,11 +54,11 @@ import rxcanvas.client.RxChromeCast.Sender;
 
 public class RxCanvas implements EntryPoint {
     private static final Logger log = Logger.getLogger(RxCanvas.class.getName());
-    private static List<String> COLORS = asList("#828b20", "#b0ac31", "#cbc53d", "#fad779",
+    private static final List<String> COLORS = asList("#828b20", "#b0ac31", "#cbc53d", "#fad779",
             "#f9e4ad", "#faf2db", "#563512", "#9b4a0b", "#d36600", "#fe8a00", "#f9a71f");
     // use 'mvn gwt:devmode -DapplicationId=XXYYZZ' to use a local development application id
-    private static String APPLICATION_ID = System.getProperty("applicationId"),
-            STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
+    private static final String APPLICATION_ID = System.getProperty("applicationId");
+    private static final String STROKE_CHANNEL = "urn:x-cast:com.intendia.rxcanvas-gwt";
 
     @Override public void onModuleLoad() {
         Element body = RootPanel.getBodyElement();
@@ -125,7 +124,7 @@ public class RxCanvas implements EntryPoint {
 
         // drag erasing
         Observable<Observable<Consumer<Context2d>>> erasing$ = erase$
-                .map(e -> drag$.<Consumer<Context2d>>map(diff -> ctx -> erase(diff, ctx)));
+                .map(e -> drag$.map(diff -> ctx -> erase(diff, ctx)));
 
         Consumer<Consumer<Context2d>> painter = action -> action.accept(canvas2d);
 
@@ -137,7 +136,7 @@ public class RxCanvas implements EntryPoint {
             GWT.log("Initializing chrome cast receiver…");
             Receiver receiver = new Receiver();
             Observable<Stroke> receiverChannel$ = receiver.castMessage(STROKE_CHANNEL)
-                    .map(event -> RxCanvas.<Stroke>parse(event.data));
+                    .map(event -> RxCanvas.parse(event.data));
             bind("chrome cast receiver", receiverChannel$.map(this::paintStroke).doOnNext(painter));
             receiver.start();
         }
@@ -249,6 +248,6 @@ public class RxCanvas implements EntryPoint {
 
     private <T> ObservableTransformer<T, T> log(String prefix) {
         if (!log.isLoggable(Level.INFO)) return o -> o;
-        else return o -> o.doOnNext(n -> log.info(prefix + ": " + Objects.toString(n)));
+        else return o -> o.doOnNext(n -> log.info(prefix + ": " + n));
     }
 }
